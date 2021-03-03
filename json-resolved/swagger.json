@@ -1,0 +1,1000 @@
+{
+  "openapi" : "3.0.0",
+  "info" : {
+    "title" : "DSS FrameWork API",
+    "description" : "**AFarCloud. T3.3 API for DSS Framework**  \nDSS Framework is a software whose main goal is to interconnect algorithms with other components of the AFarCloud ecosystem, in a way that it offers a common interface to all algorithm independently of:\n- Location of the algorithm (deployed in AFarCloud repositories or in partner’s premises)\n- Functionality that the algorithm fulfils\n- Data that algorithm uses for internal operations  \n\nDSS framework can be considered as a conveyor between AFarCloud ecosystem and algorithms and therefore there is no direct reasoning abilities, as all the valuable information is provided by algorithms, that are in charge in turning data into information for the farmer.  \nWith this information and considering that DSS framework should be independent from algorithms, replicable in different scenarios and need to show a common interface no matter the programming language of the algorithms or other AFarCloud components it was decided to implement a service based on standard REST API using HTTP and JSON as tools for information exchange.  \nDSS, as explained, lacks of an interface to show the result of the algorithm graphically (it can show information through API as plain text) and must rely on other component for this operation, in this case MMT will be the interface of DSS and communication between them will need to be implemented.  \nREST interface is used to communication between algorithms and DSS as it is easy to implement and to maintain but MMT, as standalone software, is not able to communicate using REST services and need a special interface using Apache Thrift, that DSS frame need to fulfil both in two roles:\n- receiver of information from user (MMT) to the algorithms\n- sender of information from the algorithms to the user\n",
+    "contact" : {
+      "name" : "Diego Polo (ENCORE LAB)",
+      "email" : "diego@encore-lab.com"
+    },
+    "license" : {
+      "name" : "Apache 2.0",
+      "url" : "http://www.apache.org/licenses/LICENSE-2.0.html"
+    },
+    "version" : "1.1"
+  },
+  "externalDocs" : {
+    "description" : "D3.8 DSS Framework and schemas",
+    "url" : "https://studentmdh.sharepoint.com/:w:/r/sites/AFarCould/Delade%20dokument/WP3/T3.3/D3.8/D3.8_v1.0_FINAL.docx?d=w8c57afb853774bf7b56b0f0f64dbccb7&csf=1&web=1&e=I7xPbr"
+  },
+  "servers" : [ {
+    "url" : "http://ec2-35-181-5-77.eu-west-3.compute.amazonaws.com:5000"
+  } ],
+  "tags" : [ {
+    "name" : "admins",
+    "description" : "Operations of the DSS only devoted to admins and developers."
+  }, {
+    "name" : "users",
+    "description" : "Operations of the DSS available to users who can use to control algorithms"
+  }, {
+    "name" : "algorithms",
+    "description" : "Operations of the DSS available to the algorithms"
+  }, {
+    "name" : "entry point",
+    "description" : "REST endpoints that all algorithms must implement.  \nThese calls are made by and from DSS to the algorithms to that. Algorithm shall reply with responses according to schema specifications.\n"
+  } ],
+  "paths" : {
+    "/register" : {
+      "post" : {
+        "tags" : [ "admins" ],
+        "summary" : "register a new algorithm in DSS database",
+        "description" : "Register an algorithm in the DSS database.\n\nBasic Authorization is implemented and DSS will accept the call only if authorization header is sent. The user must be 'admin' and any password will be valid as authorization method or users are not implemented yet).\n\nAlgorithm url field is the base address to the /run_alg, /stop_alg and /status_alg endpoint. DSS will call this URL when needed. The URL of the algorithm must be provided in the format http://ip:port/base_address without / at the end.\n\nDSS will return an id of the algorithm for next operations\n\nIf the endpoints of the algorithms (/run_alg, /status_alg or /start_alg) need security it can be implemented using BasicAuth security schema providing user and password in the registration process. DSS will store in the database and will make the calls with am Authorization header. If not security it needed can be leave blank but DSS will asign \"entrypoint:fakepass\" by default. Algorithms' endpoints will consider using this authorization\n",
+        "operationId" : "registerAlgorithm",
+        "parameters" : [ {
+          "name" : "user",
+          "in" : "query",
+          "description" : "user for BasicAuth for algorithm's endpoint",
+          "required" : false,
+          "style" : "form",
+          "explode" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "password",
+          "in" : "query",
+          "description" : "password for BasicAuth for algorithm's endpoint",
+          "required" : false,
+          "style" : "form",
+          "explode" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/Register.schema"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "text/plain" : {
+                "schema" : {
+                  "type" : "string",
+                  "example" : "Registration sucessful with id 256694"
+                }
+              }
+            }
+          },
+          "500" : {
+            "description" : "Internal Server Error",
+            "content" : {
+              "text/plain" : {
+                "schema" : {
+                  "type" : "string",
+                  "example" : "Failure in registration"
+                }
+              }
+            }
+          }
+        },
+        "security" : [ {
+          "adminAuth" : [ ]
+        } ]
+      }
+    },
+    "/delete/{algorithm_id}" : {
+      "get" : {
+        "tags" : [ "admins" ],
+        "summary" : "delete an algorithm",
+        "description" : "Delete an algorithm from the DSS database\n\n Basic Authorization is implemented and DSS will accept the call only if authorization header is sent. The user must be 'admin' and any password will be valid as authorization method or users are not implemented yet).\n",
+        "operationId" : "deleteAlgorithm",
+        "parameters" : [ {
+          "name" : "algorithm_id",
+          "in" : "path",
+          "required" : true,
+          "style" : "simple",
+          "explode" : false,
+          "schema" : {
+            "type" : "integer"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "text/plain" : {
+                "schema" : {
+                  "type" : "string",
+                  "example" : "Deletion sucessful"
+                }
+              }
+            }
+          },
+          "500" : {
+            "description" : "Internal Server Error",
+            "content" : {
+              "text/plain" : {
+                "schema" : {
+                  "type" : "string",
+                  "example" : "Failure in deletion"
+                }
+              }
+            }
+          }
+        },
+        "security" : [ {
+          "adminAuth" : [ ]
+        } ]
+      }
+    },
+    "/list" : {
+      "get" : {
+        "tags" : [ "users" ],
+        "summary" : "list all registered algorithms",
+        "description" : "List all registered algorithms inside the DSS database. \n\nBasic Authorization is implemented and DSS will accept the call only if authorization header is sent. The user must be 'user' and any password will be valid as authorization method or users are not implemented yet).\n",
+        "operationId" : "list",
+        "parameters" : [ {
+          "name" : "scenario",
+          "in" : "query",
+          "description" : "Filter the list according to given scenario number. I.e. 4 for AS04 or 10 for AS10. If not provided DSS will list all algorithms\n",
+          "required" : false,
+          "style" : "form",
+          "explode" : true,
+          "schema" : {
+            "type" : "integer"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "aplication/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/List.Algorithm.schema"
+                  }
+                }
+              }
+            }
+          },
+          "500" : {
+            "description" : "Internal Server Error",
+            "content" : {
+              "text/plain" : {
+                "schema" : {
+                  "type" : "string",
+                  "example" : "Failure in getting list"
+                }
+              }
+            }
+          }
+        },
+        "security" : [ {
+          "userAuth" : [ ]
+        } ]
+      }
+    },
+    "/start/{algorithm_id}" : {
+      "get" : {
+        "tags" : [ "users" ],
+        "summary" : "Start an algorithm",
+        "description" : "Start an algorithm in partner's premises.  \n\nBasic Authorization is implemented and DSS will accept the call only if authorization header is sent. The user must be 'user' and any password will be valid as authorization method or users are not implemented yet).\n\nRequest_id field is and internal identification of the request it is used for compatibility purposes with MMT, but can be leave blank.  \n\n/start internally calls to algorithm endpoint using /start_alg. The configuration stored in config field in database will be sent to the algorithm (the configuration can be updated using /update). Algorithm is in charge of replying in the proper way, if not /start will no be able to understand the response and error 502 will be thrown.\n\nMMT uses this route to start an algorithm providing the algorithm id and its internal request_id\n",
+        "operationId" : "start",
+        "parameters" : [ {
+          "name" : "algorithm_id",
+          "in" : "path",
+          "required" : true,
+          "style" : "simple",
+          "explode" : false,
+          "schema" : {
+            "type" : "integer"
+          }
+        }, {
+          "name" : "request_id",
+          "in" : "query",
+          "description" : "request_id, if not provided DSS will generate a random one",
+          "required" : false,
+          "style" : "form",
+          "explode" : true,
+          "schema" : {
+            "type" : "integer"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "text/plain" : {
+                "schema" : {
+                  "type" : "string",
+                  "example" : "Algorithm 266844 started"
+                }
+              }
+            }
+          },
+          "500" : {
+            "description" : "Internal Server Error",
+            "content" : {
+              "text/plain" : {
+                "schema" : {
+                  "type" : "string",
+                  "example" : "Failure in DSS to start algorithm or algorithm do not exist"
+                }
+              }
+            }
+          },
+          "502" : {
+            "description" : "Bad Gateway",
+            "content" : {
+              "text/plain" : {
+                "schema" : {
+                  "type" : "string",
+                  "example" : "Command sent but algorithm reply \"ERROR\" or not a DSS-compliant JSON"
+                }
+              }
+            }
+          },
+          "501" : {
+            "description" : "Bad Gateway",
+            "content" : {
+              "text/plain" : {
+                "schema" : {
+                  "type" : "string",
+                  "example" : "Algorithm endpoint API not reachable"
+                }
+              }
+            }
+          }
+        },
+        "security" : [ {
+          "userAuth" : [ ]
+        } ]
+      }
+    },
+    "/stop/{algorithm_id}" : {
+      "get" : {
+        "tags" : [ "users" ],
+        "summary" : "Stop an algorithm",
+        "description" : "Stop an algorithm in partner's premises.  \nBasic Authorization is implemented and DSS will accept the call only if authorization header is sent. The user must be 'user' and any password will be valid as authorization method or users are not implemented yet).  \n\n/stop internally calls to algorithm endpoint using /stop_alg. Algorithm is in charge of replying in the proper way, if not /start will no be able to understand the response and error 502 will be thrown.\n\nMMT uses this route to stop an algorithm providing the algorithm id.\n",
+        "operationId" : "stop",
+        "parameters" : [ {
+          "name" : "algorithm_id",
+          "in" : "path",
+          "required" : true,
+          "style" : "simple",
+          "explode" : false,
+          "schema" : {
+            "type" : "integer"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "text/plain" : {
+                "schema" : {
+                  "type" : "string",
+                  "example" : "Algorithm stoped"
+                }
+              }
+            }
+          },
+          "500" : {
+            "description" : "Internal Server Error",
+            "content" : {
+              "text/plain" : {
+                "schema" : {
+                  "type" : "string",
+                  "example" : "Failure in DSS to start algorithm"
+                }
+              }
+            }
+          },
+          "502" : {
+            "description" : "Bad Gateway",
+            "content" : {
+              "text/plain" : {
+                "schema" : {
+                  "type" : "string",
+                  "example" : "Command sent but algorithm reply \"ERROR\" or not a DSS-compliant JSON"
+                }
+              }
+            }
+          },
+          "501" : {
+            "description" : "Bad Gateway",
+            "content" : {
+              "text/plain" : {
+                "schema" : {
+                  "type" : "string",
+                  "example" : "Algorithm api not reachable"
+                }
+              }
+            }
+          }
+        },
+        "security" : [ {
+          "userAuth" : [ ]
+        } ]
+      }
+    },
+    "/status/{algorithm_id}" : {
+      "get" : {
+        "tags" : [ "users" ],
+        "summary" : "Get the status of an algorithm",
+        "description" : "Get the status of an algorithm given by algorithm name. The information of the status is taken from DSS database.\n\nBasic Authorization is implemented and DSS will accept the call only if authorization header is sent. The user must be 'user' and any password will be valid as authorization method or users are not implemented yet).  \n\nMMT uses this route to query the status an algorithm providing the algorithm id.\n",
+        "operationId" : "status",
+        "parameters" : [ {
+          "name" : "algorithm_id",
+          "in" : "path",
+          "required" : true,
+          "style" : "simple",
+          "explode" : false,
+          "schema" : {
+            "type" : "integer"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "Status of algorithm",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/inline_response_200"
+                },
+                "example" : {
+                  "status" : "STOPPED",
+                  "msg" : { }
+                }
+              }
+            }
+          },
+          "500" : {
+            "description" : "Internal Server Error",
+            "content" : {
+              "text/plain" : {
+                "schema" : {
+                  "type" : "string",
+                  "example" : "Failure in DSS to get status of algorithm"
+                }
+              }
+            }
+          },
+          "502" : {
+            "description" : "Bad Gateway",
+            "content" : {
+              "text/plain" : {
+                "schema" : {
+                  "type" : "string",
+                  "example" : "Command sent but algorithm reply \"ERROR\" or not a DSS-compliant JSON"
+                }
+              }
+            }
+          },
+          "501" : {
+            "description" : "Bad Gateway",
+            "content" : {
+              "text/plain" : {
+                "schema" : {
+                  "type" : "string",
+                  "example" : "Algorithm api not reachable"
+                }
+              }
+            }
+          }
+        },
+        "security" : [ {
+          "userAuth" : [ ]
+        } ]
+      }
+    },
+    "/update/{algorithm_id}" : {
+      "post" : {
+        "tags" : [ "users" ],
+        "summary" : "Update the configuration of an algorithm",
+        "description" : "Update configuration of the algorithm\n\nIt modified the field config inside DSS database. It does not convey this info to the algorithm and will be send next time /start is queried.  \n\nBasic Authorization is implemented and DSS will accept the call only if authorization header is sent. The user must be 'user' and any password will be valid as authorization method or users are not implemented yet).\n",
+        "operationId" : "updateAlgorithm",
+        "parameters" : [ {
+          "name" : "algorithm_id",
+          "in" : "path",
+          "required" : true,
+          "style" : "simple",
+          "explode" : false,
+          "schema" : {
+            "type" : "integer"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/body"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "text/plain" : {
+                "schema" : {
+                  "type" : "string",
+                  "example" : "Algorithm config updated"
+                }
+              }
+            }
+          },
+          "500" : {
+            "description" : "Internal Server Error",
+            "content" : {
+              "text/plain" : {
+                "schema" : {
+                  "type" : "string",
+                  "example" : "Failure in updating config"
+                }
+              }
+            }
+          },
+          "501" : {
+            "description" : "Internal Server Error",
+            "content" : {
+              "text/plain" : {
+                "schema" : {
+                  "type" : "string",
+                  "example" : "Failure in DSS to update algorithm or algorithm do not exist"
+                }
+              }
+            }
+          },
+          "502" : {
+            "description" : "Internal Server Error",
+            "content" : {
+              "text/plain" : {
+                "schema" : {
+                  "type" : "string",
+                  "example" : "Not a valid json"
+                }
+              }
+            }
+          }
+        },
+        "security" : [ {
+          "userAuth" : [ ]
+        } ]
+      }
+    },
+    "/conveymmt" : {
+      "post" : {
+        "tags" : [ "algorithms" ],
+        "summary" : "Endpoint to receive data from an algorithm and convey to MMT",
+        "description" : "To allow asynchronous communications between DSS-Algorithms, once /start is sent DSS does not expect the results, as they can take several seconds and will freeze the server. Once the algorithm calculate the result shall send it to this DSS's endpoint. DSS will send the information to the MMT using MMT-DSS thrift interfaces.\n\nThe information to send to the DSS must follow the MMT-compliant formats defined in thrift. Not sending the results in the correct format will raise an error and data will not be conveyed to MMTaccording to the specified schemas to be understood by MMT.\n\nAny Authorization is implemented for this route.\n",
+        "operationId" : "conveyMMT",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/response_schema"
+              },
+              "example" : {
+                "request_id" : 26120,
+                "data" : [ {
+                  "timestamp" : 1529992211,
+                  "observation" : "irrigation",
+                  "units" : "mm",
+                  "result" : 32.12
+                } ],
+                "data_type" : "number"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "text/plain" : {
+                "schema" : {
+                  "type" : "string",
+                  "example" : "Data sent to MMT"
+                }
+              }
+            }
+          },
+          "500" : {
+            "description" : "Internal Server Error",
+            "content" : {
+              "text/plain" : {
+                "schema" : {
+                  "type" : "string",
+                  "example" : "Failure in response of algorithm. Check json."
+                }
+              }
+            }
+          },
+          "501" : {
+            "description" : "Internal Server Error",
+            "content" : {
+              "text/plain" : {
+                "schema" : {
+                  "type" : "string",
+                  "example" : "Failure in response of algorithm. Check datatypes"
+                }
+              }
+            }
+          },
+          "502" : {
+            "description" : "Internal Server Error",
+            "content" : {
+              "text/plain" : {
+                "schema" : {
+                  "type" : "string",
+                  "example" : "Request_id does not exist"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/run_alg" : {
+      "post" : {
+        "tags" : [ "entry point" ],
+        "summary" : "Run an algorithm",
+        "description" : "Commands an algorithm to start.  \n\nDSS will send to the algorithm the following information:\n- the configuration that is stored in the database\n- request_id\n- End point URL to send the result using /conveymmt route\n\nRequest_id is provided by MMT, but if /run_alg is started by /start of the DSS framework a random number will be provided\n\nBasic Authorization is implemented and DSS will send the authorization header that is stored in the database\n\n**Algorithm shall reply according to output_algorith_run**\n",
+        "operationId" : "run_alg",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/body_1"
+              }
+            }
+          },
+          "required" : false
+        },
+        "responses" : {
+          "200" : {
+            "description" : "Output of the algorithm. Algorithm should reply with schema \"output_algorithm_run\"",
+            "content" : {
+              "text/plain" : {
+                "schema" : {
+                  "type" : "string",
+                  "enum" : [ "Algorithm started", "Algorithm starting error" ]
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "Algorithm not reachable"
+          }
+        },
+        "security" : [ {
+          "entrypointAuth" : [ ]
+        } ]
+      }
+    },
+    "/stop_alg" : {
+      "get" : {
+        "tags" : [ "entry point" ],
+        "summary" : "Stop an algorithm",
+        "description" : "Commands an algorithm to stop.\n\nBasic Authorization is implemented and DSS will send the authorization header that is stored in the database\n\n**Algorithm shall reply according to output_algorith_stop**\n",
+        "operationId" : "stop_alg",
+        "responses" : {
+          "200" : {
+            "description" : "Output of the algorithm. Algorithm should reply with schema \"output_algorithm_stop\"",
+            "content" : {
+              "text/plain" : {
+                "schema" : {
+                  "type" : "string",
+                  "enum" : [ "Algorithm stopped", "Algorithm stopping error" ]
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "Algorithm not reachable"
+          }
+        }
+      }
+    },
+    "/status_alg" : {
+      "get" : {
+        "tags" : [ "entry point" ],
+        "summary" : "Status of an algorithm",
+        "description" : "Get the status of an algorithm.  \n\nBasic Authorization is implemented and DSS will send the authorization header that is stored in the database\n\n**Algorithm shall reply according to output_algorith_status**\n",
+        "operationId" : "status_alg",
+        "responses" : {
+          "200" : {
+            "description" : "Output of the algorithm. Algorithm should reply with schema \"output_algorithm_status_started\" or \"output_algorithm_stopped\""
+          },
+          "400" : {
+            "description" : "Algorithm not reachable"
+          }
+        },
+        "security" : [ {
+          "entrypointAuth" : [ ]
+        } ]
+      }
+    }
+  },
+  "components" : {
+    "schemas" : {
+      "output_algorithm_run" : {
+        "type" : "object",
+        "properties" : {
+          "status" : {
+            "type" : "string",
+            "enum" : [ "STARTED", "ERROR" ]
+          },
+          "msg" : {
+            "type" : "object",
+            "description" : "json (defined by developer) from the algortithm with info (for debug, will be not show)"
+          }
+        },
+        "description" : "Output an algorithm should provide if DSS Framework send /run_alg command example"
+      },
+      "output_algorithm_stop" : {
+        "type" : "object",
+        "properties" : {
+          "status" : {
+            "type" : "string",
+            "enum" : [ "STOPPED", "ERROR" ]
+          },
+          "msg" : {
+            "type" : "object",
+            "description" : "json (defined by developer) from the algortithm with info (for debug, will be not show)"
+          }
+        },
+        "description" : "Output an algorithm should provide if DSS Framework send /run_alg command example"
+      },
+      "output_algorithm_status" : {
+        "type" : "object",
+        "properties" : {
+          "status" : {
+            "type" : "string",
+            "enum" : [ "STARTED", "STOPPED", "ERROR" ]
+          },
+          "msg" : {
+            "type" : "object",
+            "description" : "json (defined by developer) from the algortithm with info (for debug, will be not show)"
+          }
+        },
+        "description" : "Output an algorithm should provide if DSS Framework send /status_alg command"
+      },
+      "response_schema" : {
+        "type" : "object",
+        "properties" : {
+          "request_id" : {
+            "type" : "integer",
+            "description" : "request_id is provided by MMT in /start, need to return it as DSS needs to know to send properly to MMT"
+          },
+          "data_type" : {
+            "type" : "string",
+            "description" : "Defines the type of the response",
+            "enum" : [ "number", "boolean", "string", "position" ]
+          },
+          "data" : {
+            "type" : "array",
+            "description" : "List(!) of JSON according to available schemas (response_number_schema, response_boolean_schema, response_string_schema or response_position_schema)",
+            "items" : {
+              "type" : "object",
+              "anyOf" : [ {
+                "$ref" : "#/components/schemas/response_number_schema"
+              }, {
+                "$ref" : "#/components/schemas/response_string_schema"
+              }, {
+                "$ref" : "#/components/schemas/response_position_schema"
+              }, {
+                "$ref" : "#/components/schemas/response_boolean_schema"
+              } ]
+            }
+          }
+        },
+        "description" : "Schema of the data an algorithm need to send to to DSS framework to convey to MMT. \n"
+      },
+      "response_number_schema" : {
+        "type" : "object",
+        "properties" : {
+          "timestamp" : {
+            "type" : "integer",
+            "description" : "Time of recomendation"
+          },
+          "observation" : {
+            "$ref" : "#/components/schemas/AlgorithmObservationType"
+          },
+          "units" : {
+            "type" : "string",
+            "description" : "Units of measure according to http://qudt.org/vocab/unit/"
+          },
+          "result" : {
+            "type" : "number",
+            "description" : "recommendation"
+          }
+        }
+      },
+      "response_boolean_schema" : {
+        "type" : "object",
+        "properties" : {
+          "timestamp" : {
+            "type" : "integer",
+            "description" : "Time of recomendation"
+          },
+          "observation" : {
+            "$ref" : "#/components/schemas/AlgorithmObservationType"
+          },
+          "units" : {
+            "type" : "string",
+            "description" : "Units of measure according to http://qudt.org/vocab/unit/"
+          },
+          "result" : {
+            "type" : "string",
+            "enum" : [ "true", "false" ]
+          }
+        }
+      },
+      "response_string_schema" : {
+        "type" : "object",
+        "properties" : {
+          "timestamp" : {
+            "type" : "integer",
+            "description" : "Time of recomendation"
+          },
+          "observation" : {
+            "$ref" : "#/components/schemas/AlgorithmObservationType"
+          },
+          "units" : {
+            "type" : "string",
+            "description" : "Units of measure according to http://qudt.org/vocab/unit/"
+          },
+          "result" : {
+            "type" : "string",
+            "description" : "recommendation"
+          }
+        }
+      },
+      "response_position_schema" : {
+        "type" : "object",
+        "properties" : {
+          "timestamp" : {
+            "type" : "integer",
+            "description" : "Time of recomendation"
+          },
+          "observation" : {
+            "$ref" : "#/components/schemas/AlgorithmObservationType"
+          },
+          "units" : {
+            "type" : "string",
+            "description" : "Units of measure according to http://qudt.org/vocab/unit/"
+          },
+          "position" : {
+            "$ref" : "#/components/schemas/AFC_Types.Position"
+          }
+        }
+      },
+      "AlgorithmObservationType" : {
+        "type" : "string",
+        "enum" : [ "water_consumption", "irrigation", "leaves_wetness", "cows_aggressivity", "distance", "milk_weight", "PEF", "PEFK" ]
+      },
+      "AFC_Types.Position" : {
+        "type" : "object",
+        "properties" : {
+          "longitude" : {
+            "type" : "number",
+            "description" : "Longitude"
+          },
+          "latitude" : {
+            "type" : "number",
+            "description" : "Latitude"
+          },
+          "altitude" : {
+            "type" : "number",
+            "description" : "Altitude"
+          }
+        }
+      },
+      "Register.schema" : {
+        "type" : "object",
+        "properties" : {
+          "name" : {
+            "type" : "string",
+            "description" : "Name of the algorithm"
+          },
+          "description" : {
+            "type" : "string",
+            "description" : "Description of the algorithm"
+          },
+          "scenario" : {
+            "type" : "integer",
+            "description" : "Number of scenario in which the algorithm is running"
+          },
+          "urlapi" : {
+            "type" : "string",
+            "description" : "http://ip_or_url:PORT of the endpoint of the algorithm"
+          },
+          "urlweb" : {
+            "type" : "string",
+            "description" : "http://ip_or_url:PORT of the custom webpage for configuration of the algorithm, by default API documentation page (this page)",
+            "default" : "https://app.swaggerhub.com/apis/dpolob/api_afc_dss/1.1"
+          },
+          "config" : {
+            "$ref" : "#/components/schemas/Algorithm.config"
+          }
+        },
+        "example" : {
+          "name" : "unique name",
+          "description" : "description of the algorithm",
+          "urlapi" : "url for the algorithm",
+          "urlweb" : "custom web for algorithm",
+          "scenario" : 4,
+          "config" : {
+            "user_parameter1" : 12,
+            "user_parameter2" : "yes"
+          }
+        }
+      },
+      "Algorithm.config" : {
+        "type" : "object",
+        "properties" : {
+          "parameter1" : {
+            "type" : "string",
+            "description" : "parameter1 defined by developer"
+          },
+          "parameter2" : {
+            "type" : "string",
+            "description" : "parameter2 defined by developer"
+          }
+        },
+        "description" : "JSON defined by developer with parameters needed to run the algorithm. It can be leave empty but not blank."
+      },
+      "List_response.schema" : {
+        "type" : "array",
+        "items" : {
+          "$ref" : "#/components/schemas/List.Algorithm.schema"
+        }
+      },
+      "Algorithm.auth.schema" : {
+        "type" : "object",
+        "properties" : {
+          "user" : {
+            "type" : "string"
+          },
+          "password" : {
+            "type" : "string"
+          }
+        },
+        "example" : {
+          "user" : "entrypoint",
+          "password" : "fakepass"
+        }
+      },
+      "List.Algorithm.schema" : {
+        "type" : "object",
+        "properties" : {
+          "algorithm_name" : {
+            "type" : "string",
+            "description" : "Name of the algorithm"
+          },
+          "id" : {
+            "type" : "integer",
+            "description" : "Id of algorithm"
+          },
+          "description" : {
+            "type" : "string",
+            "description" : "Description of the algorithm"
+          },
+          "urlapi" : {
+            "type" : "string",
+            "description" : "Url:port of REST endpoint of the algorithm"
+          },
+          "urlweb" : {
+            "type" : "string",
+            "description" : "url:port of web of the algorithm"
+          },
+          "config" : {
+            "$ref" : "#/components/schemas/Algorithm.config"
+          },
+          "status" : {
+            "type" : "integer",
+            "description" : "last status of the algorithm"
+          },
+          "scenario" : {
+            "type" : "integer",
+            "description" : "scenario of the algorithm"
+          },
+          "auth" : {
+            "$ref" : "#/components/schemas/Algorithm.auth.schema"
+          }
+        },
+        "example" : {
+          "name" : "Water needs calculation for ENC",
+          "description" : "Calculate crop water needs in AS04 using encore soil sensor",
+          "urlapi" : "http://2.136.67.230:5001",
+          "urlweb" : "http://2.136.67.230:5001/parameters",
+          "config" : {
+            "parameter1" : "... CONFIGURATION...."
+          },
+          "auth" : {
+            "user" : "entrypoint",
+            "password" : "fakepass"
+          },
+          "status" : 1,
+          "id" : 83020,
+          "scenario" : 4
+        }
+      },
+      "inline_response_200" : {
+        "type" : "object",
+        "properties" : {
+          "status" : {
+            "type" : "string",
+            "enum" : [ "STARTED", "STOPPED" ]
+          },
+          "msg" : {
+            "type" : "object",
+            "description" : "JSON defined by developer with customized information"
+          }
+        }
+      },
+      "body" : {
+        "type" : "object",
+        "properties" : {
+          "config" : {
+            "$ref" : "#/components/schemas/Algorithm.config"
+          }
+        }
+      },
+      "body_1" : {
+        "type" : "object",
+        "properties" : {
+          "config" : {
+            "$ref" : "#/components/schemas/Algorithm.config"
+          },
+          "request_id" : {
+            "type" : "integer",
+            "description" : "Request_id provided by MMT or DSS"
+          },
+          "dss_api_endpoint" : {
+            "type" : "string",
+            "description" : "Endpoint to send results"
+          }
+        }
+      }
+    },
+    "securitySchemes" : {
+      "adminAuth" : {
+        "type" : "http",
+        "scheme" : "basic"
+      },
+      "userAuth" : {
+        "type" : "http",
+        "scheme" : "basic"
+      },
+      "entrypointAuth" : {
+        "type" : "http",
+        "scheme" : "basic"
+      }
+    }
+  }
+}
